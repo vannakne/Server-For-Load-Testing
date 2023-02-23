@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Load Testing Practice Page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="mt-5">Welcome to the Load Testing Practice Page!</h1>
+      <h2 class="mt-5">Endpoints:</h2>
+      <ul class="list-group">
+        <li class="list-group-item">
+          <a href="#" onclick="getHello()">GET /api/hello</a>
+        </li>
+        <li class="list-group-item">
+          <a href="#" onclick="postLogin()">POST /api/login</a>
+        </li>
+        <li class="list-group-item">
+          <a href="#" onclick="getCompute()">GET /api/compute</a> <p>Count: 1000000000</p>
+        </li>
+        <li class="list-group-item">
+          <a href="#" onclick="putUser()">PUT /api/users/:id</a>
+        </li>
+        <li class="list-group-item">
+          <a href="#" onclick="deleteUser()">DELETE /api/users/:id</a>
+        </li>
+        <li class="list-group-item">
+          <a href="#" onclick="getUsers()">GET /api/users</a>
+        </li>
+        <li class="list-group-item">
+          <form onsubmit="getUserById(); return false;">
+            <div class="form-group">
+              <label for="userId">GET /api/users/:id</label>
+              <input type="text" class="form-control" id="userId" name="userId">
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+        </li>
+        <li class="list-group-item">
+          <form onsubmit="getComputeByCount(); return false;">
+            <div class="form-group">
+              <label for="userId">GET /api/compute/:count</label>
+              <input type="text" class="form-control" id="computeId" name="computeId">
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+        </li>
+      </ul>
+      <h2 class="mt-5">Response:</h2>
+      <pre id="response"></pre>
+      <h2 class="mt-5">Metrics:</h2>
+      <canvas id="metrics"></canvas>
+    </div>
+    <script>
+      const apiUrl = 'http://127.0.0.1:3000';
+      const getHello = () => {
+        axios.get(`${apiUrl}/api/hello`).then(response => {
+          document.getElementById('response').textContent = response.data;
+        }).catch(error => {
+          document.getElementById('response').textContent = error.message;
+        });
+      };
+      const postLogin = () => {
+        axios.post(`${apiUrl}/api/login`).then(response => {
+          document.getElementById('response').textContent = response.data;
+        }).catch(error => {
+          document.getElementById('response').textContent = error.message;
+        });
+      };
+      const putUser = () => {
+        axios.put(`${apiUrl}/api/users/1`).then(response => {
+          document.getElementById('response').textContent = response.data;
+        }).catch(error => {
+          document.getElementById('response').textContent = error.message;
+        });
+      };
+      const deleteUser = () => {
+        axios.delete(`${apiUrl}/api/users/:id`).then(response => {
+          document.getElementById('response').textContent = response.data;
+        }).catch(error => {
+          document.getElementById('response').textContent = error.message;
+        });
+      };
+      const getUsers = () => {
+        axios.get(`${apiUrl}/api/users`).then(response => {
+          document.getElementById('response').textContent = JSON.stringify(response.data);
+        }).catch(error => {
+          document.getElementById('response').textContent = error.message;
+        });
+      };
+      const getUserById = () => {
+        const userId = document.getElementById('userId').value;
+        axios.get(`${apiUrl}/api/users/${userId}`).then(response => {
+          document.getElementById('response').textContent = JSON.stringify(response.data);
+        }).catch(error => {
+          document.getElementById('response').textContent = error.message;
+        });
+      };
+      const getCompute = () => {
+        axios.get(`${apiUrl}/api/compute`).then(response => {
+          document.getElementById('response').textContent = JSON.stringify(response.data);
+        }).catch(error => {
+          document.getElementById('response').textContent = error.message;
+        });
+      };
+      const getComputeByCount = () => {
+        const count = document.getElementById('computeId').value;
+        axios.get(`${apiUrl}/api/compute/${count}`).then(response => {
+          document.getElementById('response').textContent = JSON.stringify(response.data);
+        }).catch(error => {
+          document.getElementById('response').textContent = error.message;
+        });
+      };
+      const updateMetrics = (data) => {
+        const ctx = document.getElementById('metrics').getContext('2d');
+        const labels = data.map(d => d.timestamp);
+        const requests = data.map(d => d.requests);
+        const responseTimes = data.map(d => d.responseTimes);
+        const dataChart = {
+          labels: labels,
+          datasets: [{
+            label: 'Requests',
+            data: requests,
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+          }, {
+            label: 'Response Times (ms)',
+            data: responseTimes,
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        };
+        const options = {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            yAxes: [{
+              ticks: {
+                beginAtZero: true
+              }
+            }]
+          }
+        };
+        const chart = new Chart(ctx, {
+          type: 'line',
+          data: dataChart,
+          options: options
+        });
+      };
+      const socket = io(apiUrl);
+      socket.on('metrics', data => {
+        updateMetrics(data);
+      });
+    </script>
+  </body>
+</html>
